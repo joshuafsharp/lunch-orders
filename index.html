@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Lunch</title>
+<style>
+  :root {
+    --bg: #fbf9f6; --card: #fff; --ink: #22201d; --muted: #6d6660;
+    --line: #e6e0d8; --accent: #b4541f; --ok: #2f6b3f;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17150f; --card: #201d16; --ink: #f0ece5; --muted: #a29a8f;
+      --line: #332e25; --accent: #e08a4a; --ok: #7fc08e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 1.9rem; margin: 0 0 4px; letter-spacing: -0.02em; }
+  h2 { font-size: 1.1rem; margin: 40px 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  .pill {
+    display: inline-block; padding: 2px 10px; border-radius: 999px;
+    font-size: .78rem; border: 1px solid var(--line); color: var(--muted);
+  }
+  .pill.open { color: var(--ok); border-color: currentColor; }
+  .pill.shut { color: var(--accent); border-color: currentColor; }
+
+  .dish {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; margin-bottom: 16px;
+  }
+  .media { position: relative; background: #0002; }
+  .track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .track::-webkit-scrollbar { display: none; }
+  .track > * {
+    flex: 0 0 100%; scroll-snap-align: center; display: block;
+    width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: #0003;
+  }
+  .nav {
+    position: absolute; inset: auto 0 8px; display: flex; gap: 6px; justify-content: center;
+  }
+  .nav button {
+    width: 7px; height: 7px; padding: 0; border-radius: 999px; border: 0;
+    background: #fff9; cursor: pointer;
+  }
+  .nav button[aria-current="true"] { background: #fff; }
+
+  .body { padding: 16px; display: grid; gap: 6px; }
+  .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .name { font-weight: 600; }
+  .price { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .desc { color: var(--muted); font-size: .93rem; margin: 0; }
+  .allergens { font-size: .78rem; color: var(--muted); }
+
+  .stepper { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .stepper button {
+    width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line);
+    background: transparent; color: var(--ink); font-size: 1.1rem; cursor: pointer;
+  }
+  .stepper button:disabled { opacity: .35; cursor: default; }
+  .qty { min-width: 1.5ch; text-align: center; font-variant-numeric: tabular-nums; }
+  .line-total { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  form { margin-top: 28px; display: grid; gap: 14px; }
+  label { display: grid; gap: 5px; font-size: .9rem; color: var(--muted); }
+  input, textarea {
+    font: inherit; color: var(--ink); background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
+  }
+  textarea { min-height: 76px; resize: vertical; }
+  .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+  .total {
+    display: flex; justify-content: space-between; font-weight: 600;
+    padding: 14px 0; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums;
+  }
+  button.submit {
+    font: inherit; font-weight: 600; padding: 13px; border: 0; border-radius: 12px;
+    background: var(--accent); color: #fff; cursor: pointer;
+  }
+  button.submit:disabled { opacity: .45; cursor: default; }
+  .msg { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); }
+  .msg.bad { color: var(--accent); border-color: currentColor; }
+  .msg.good { color: var(--ok); border-color: currentColor; }
+
+  details { border-top: 1px solid var(--line); padding-top: 14px; }
+  summary { cursor: pointer; color: var(--muted); }
+  .past { margin: 14px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: .92rem; }
+  .past li { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .past b { color: var(--ink); font-weight: 600; }
+  footer { margin-top: 48px; color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Lunch</h1>
+  <p class="sub" id="sub">Loading this week…</p>
+
+  <div id="menu"></div>
+  <div id="order"></div>
+
+  <h2>Previous weeks</h2>
+  <details id="history"><summary>What we've cooked before</summary></details>
+
+  <footer>Cooked Sunday, delivered Monday. Pay by PayID or cash — details land in your inbox.</footer>
+</main>
+
+<script>
+// Apps Script web app URL. Publish to the EXISTING deployment on redeploy or this changes.
+const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxwXQ6H_52cH6fy4aUZn7WbFtbf7z9n-Km6nfgF1XS5JklSNAdJRKTseZTNMWJyl13YoA/exec';
+
+const $ = (s, r = document) => r.querySelector(s);
+const money = n => '$' + n.toFixed(2);
+const esc = s => String(s).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+
+const state = { week: null, isOpen: false, dishes: [], qty: {}, renderedAt: Date.now() };
+
+boot();
+
+async function boot() {
+  try {
+    const data = await (await fetch(ENDPOINT)).json();
+    if (!data.week) return fail('No menu up yet. Check back soon.');
+    state.week = data.week;
+    state.isOpen = data.is_open;
+    state.dishes = data.dishes;
+    state.renderedAt = Date.now();
+    renderHeader(data);
+    renderMenu();
+    renderOrder();
+  } catch (err) {
+    fail("Couldn't load the menu. Refresh, or message me.");
+  }
+  loadHistory();
+}
+
+function fail(text) {
+  $('#sub').innerHTML = `<span class="msg bad">${esc(text)}</span>`;
+}
+
+function renderHeader(data) {
+  const when = new Date(data.week + 'T00:00:00').toLocaleDateString(undefined,
+    { weekday: 'long', day: 'numeric', month: 'long' });
+  const closes = new Date(data.closes_at).toLocaleString(undefined,
+    { weekday: 'long', hour: 'numeric', minute: '2-digit' });
+  $('#sub').innerHTML = data.is_open
+    ? `Delivering <b>${esc(when)}</b> &nbsp;<span class="pill open">Orders close ${esc(closes)}</span>`
+    : `Delivering <b>${esc(when)}</b> &nbsp;<span class="pill shut">Orders closed</span>`;
+}
+
+function renderMenu() {
+  $('#menu').innerHTML = state.dishes.map(dishCard).join('');
+  state.dishes.forEach(d => { if (d.media.length > 1) wireCarousel(d.id); });
+  if (state.isOpen) wireSteppers();
+}
+
+function dishCard(d) {
+  const media = d.media.length ? `
+    <div class="media" data-carousel="${esc(d.id)}">
+      <div class="track">${d.media.map(mediaTag).join('')}</div>
+      ${d.media.length > 1 ? `<div class="nav">${d.media.map((_, i) =>
+        `<button type="button" data-go="${i}" aria-label="Slide ${i + 1}"
+           aria-current="${i === 0}"></button>`).join('')}</div>` : ''}
+    </div>` : '';
+
+  const stepper = state.isOpen ? `
+    <div class="stepper" data-dish="${esc(d.id)}">
+      <button type="button" data-step="-1" aria-label="Fewer" disabled>−</button>
+      <span class="qty" data-qty>0</span>
+      <button type="button" data-step="1" aria-label="More">+</button>
+      <span class="line-total" data-line></span>
+    </div>` : '';
+
+  return `<article class="dish">
+    ${media}
+    <div class="body">
+      <div class="row"><span class="name">${esc(d.name)}</span>
+        <span class="price">${money(d.price)}</span></div>
+      ${d.description ? `<p class="desc">${esc(d.description)}</p>` : ''}
+      ${d.allergens ? `<span class="allergens">Contains: ${esc(d.allergens)}</span>` : ''}
+      ${stepper}
+    </div>
+  </article>`;
+}
+
+function mediaTag(src) {
+  return /\.(mp4|webm|mov)$/i.test(src)
+    ? `<video src="${esc(src)}" muted playsinline loop controls preload="metadata"></video>`
+    : `<img src="${esc(src)}" alt="" loading="lazy">`;
+}
+
+function wireCarousel(id) {
+  const root = $(`[data-carousel="${CSS.escape(id)}"]`);
+  const track = $('.track', root);
+  const dots = [...root.querySelectorAll('[data-go]')];
+  dots.forEach(dot => dot.addEventListener('click', () => {
+    track.scrollTo({ left: track.clientWidth * Number(dot.dataset.go), behavior: 'smooth' });
+  }));
+  track.addEventListener('scroll', () => {
+    const i = Math.round(track.scrollLeft / track.clientWidth);
+    dots.forEach((d, j) => d.setAttribute('aria-current', String(j === i)));
+  }, { passive: true });
+}
+
+function wireSteppers() {
+  document.querySelectorAll('[data-dish]').forEach(box => {
+    const id = box.dataset.dish;
+    const dish = state.dishes.find(d => d.id === id);
+    box.querySelectorAll('[data-step]').forEach(btn => btn.addEventListener('click', () => {
+      const next = (state.qty[id] || 0) + Number(btn.dataset.step);
+      state.qty[id] = Math.min(5, Math.max(0, next));
+      $('[data-qty]', box).textContent = state.qty[id];
+      $('[data-line]', box).textContent = state.qty[id] ? money(state.qty[id] * dish.price) : '';
+      box.querySelector('[data-step="-1"]').disabled = state.qty[id] === 0;
+      box.querySelector('[data-step="1"]').disabled = state.qty[id] === 5;
+      updateTotal();
+    }));
+  });
+}
+
+function renderOrder() {
+  if (!state.isOpen) {
+    $('#order').innerHTML = `<p class="msg">Orders for this week are closed.
+      Next week's menu goes up shortly — check back.</p>`;
+    return;
+  }
+  $('#order').innerHTML = `
+    <form id="form" novalidate>
+      <div class="total"><span>Total</span><span id="total">$0.00</span></div>
+      <label>Your name<input name="name" autocomplete="name" required></label>
+      <label>Email<input name="email" type="email" autocomplete="email" required>
+        <small>Your receipt and payment details go here.</small></label>
+      <label>Anything I should know? <span>(allergies, swaps, timing)</span>
+        <textarea name="notes"></textarea></label>
+      <div class="hp" aria-hidden="true">
+        <label>Website<input name="website" tabindex="-1" autocomplete="off"></label>
+      </div>
+      <button class="submit" type="submit" disabled>Place order</button>
+      <div id="msg"></div>
+    </form>`;
+  $('#form').addEventListener('submit', submit);
+}
+
+function items() {
+  return Object.entries(state.qty)
+    .filter(([, q]) => q > 0)
+    .map(([id, qty]) => ({ id, qty }));
+}
+
+function updateTotal() {
+  const total = items().reduce((sum, i) =>
+    sum + i.qty * state.dishes.find(d => d.id === i.id).price, 0);
+  $('#total').textContent = money(total);
+  $('.submit').disabled = total === 0;
+}
+
+async function submit(event) {
+  event.preventDefault();
+  const form = event.target;
+  const btn = $('.submit', form);
+  const msg = $('#msg');
+  const f = form.elements; // form.name would be the form's own name property, not the input
+  const payload = {
+    name: f.name.value,
+    email: f.email.value,
+    notes: f.notes.value,
+    website: f.website.value,
+    elapsed_ms: Date.now() - state.renderedAt,
+    items: items()
+  };
+
+  btn.disabled = true;
+  msg.innerHTML = '';
+  try {
+    // text/plain avoids a CORS preflight — Apps Script does not answer OPTIONS.
+    const res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Order failed.');
+    form.replaceWith(Object.assign(document.createElement('p'), {
+      className: 'msg good',
+      textContent: `Order in — receipt and payment details sent to ${payload.email}. ` +
+                   `Wrong address? Just order again.`
+    }));
+  } catch (err) {
+    msg.innerHTML = `<p class="msg bad">${esc(err.message)}</p>`;
+    btn.disabled = false;
+  }
+}
+
+async function loadHistory() {
+  try {
+    const data = await (await fetch(ENDPOINT + '?view=archive')).json();
+    if (!data.weeks || !data.weeks.length) return $('#history').remove();
+    $('#history').insertAdjacentHTML('beforeend', `<ul class="past">${data.weeks.map(w => {
+      const when = new Date(w.week + 'T00:00:00')
+        .toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+      return `<li><b>${esc(when)}</b> — ${w.dishes.map(d => esc(d.name)).join(', ')}</li>`;
+    }).join('')}</ul>`);
+  } catch (err) {
+    $('#history').remove();
+  }
+}
+</script>
+</body>
+</html>
