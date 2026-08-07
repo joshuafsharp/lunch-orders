@@ -63,7 +63,7 @@ One row per line item, rows of one order share `order_id`.
 **`doGet`** — no params: the live week. `?view=archive`: past weeks.
 
 ```json
-{ "week": "2026-08-10", "is_open": true, "closes_at": "2026-08-07T23:59:59+10:00",
+{ "week": "2026-08-10", "is_open": true, "closes_at": "2026-08-07T17:00:00+10:00",
   "dishes": [ { "id": "m01", "name": "...", "price": 14.00, "media": ["media/rice.jpg"] } ] }
 ```
 
@@ -72,7 +72,7 @@ One row per line item, rows of one order share `order_id`.
 
 ## Cutoff
 
-Derived server-side: **Friday 23:59 Australia/Sydney**, computed from the live week's Monday date.
+Derived server-side: **Friday 5pm Australia/Sydney**, computed from the live week's Monday date.
 Nothing to remember on a Friday night.
 
 Checked on both `doGet` (`is_open` flag, so the page renders a closed state) and `doPost` (the actual

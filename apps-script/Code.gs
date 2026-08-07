@@ -210,11 +210,11 @@ function weekKey(v) {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
 }
 
-/** Delivery Monday → Friday 23:59:59 of the week before. Script tz is Sydney. */
+/** Delivery Monday → Friday 5pm of the week before. Script tz is Sydney. */
 function cutoffFor(week) {
   var p = week.split('-');
   var monday = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-  return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() - 3, 23, 59, 59);
+  return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() - 3, 17, 0, 0);
 }
 
 function fmtWeek(week) {

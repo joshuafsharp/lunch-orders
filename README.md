@@ -20,7 +20,7 @@ Static page + Apps Script + a private Google Sheet. See [PLAN.md](PLAN.md) for t
 
 - **Publish** — in the Menu tab, set last week's rows to `archive`, paste new rows as `live` with next
   Monday's date. No deploy.
-- **Friday** — read the Orders tab. Orders after Friday 23:59 are rejected automatically.
+- **Friday** — read the Orders tab. Orders after Friday 5pm are rejected automatically.
 - **Monday** — tick `paid` at handover.
 
 New dishes with new media need the files committed under `media/` and pushed. Compress first:
