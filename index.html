@@ -42,7 +42,12 @@
   .track::-webkit-scrollbar { display: none; }
   .track > * {
     flex: 0 0 100%; scroll-snap-align: center; display: block;
-    width: 100%; aspect-ratio: 16 / 10; object-fit: cover; background: #0003;
+    width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: center;
+    background: #0003;
+  }
+  /* Portrait shots crop hardest — give them a taller box on narrow screens. */
+  @media (max-width: 560px) {
+    .track > * { aspect-ratio: 1 / 1; }
   }
   .nav {
     position: absolute; inset: auto 0 8px; display: flex; gap: 6px; justify-content: center;
