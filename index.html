@@ -37,17 +37,14 @@
     background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
     overflow: hidden; margin-bottom: 16px;
   }
-  .media { position: relative; background: #0002; }
+  /* Portrait phone shots (3:4). Centred on desktop so the card isn't absurdly tall. */
+  .media { position: relative; background: #0002; max-width: 420px; margin: 0 auto; }
   .track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .track::-webkit-scrollbar { display: none; }
   .track > * {
     flex: 0 0 100%; scroll-snap-align: center; display: block;
-    width: 100%; aspect-ratio: 4 / 3; object-fit: cover; object-position: center;
+    width: 100%; aspect-ratio: 4 / 5; object-fit: cover; object-position: center;
     background: #0003;
-  }
-  /* Portrait shots crop hardest — give them a taller box on narrow screens. */
-  @media (max-width: 560px) {
-    .track > * { aspect-ratio: 1 / 1; }
   }
   .nav {
     position: absolute; inset: auto 0 8px; display: flex; gap: 6px; justify-content: center;
@@ -154,11 +151,19 @@ function fail(text) {
 function renderHeader(data) {
   const when = new Date(data.week + 'T00:00:00').toLocaleDateString(undefined,
     { weekday: 'long', day: 'numeric', month: 'long' });
-  const closes = new Date(data.closes_at).toLocaleString(undefined,
-    { weekday: 'long', hour: 'numeric', minute: '2-digit' });
+  const closes = fmtCutoff(new Date(data.closes_at));
   $('#sub').innerHTML = data.is_open
     ? `Delivering <b>${esc(when)}</b> &nbsp;<span class="pill open">Orders close ${esc(closes)}</span>`
     : `Delivering <b>${esc(when)}</b> &nbsp;<span class="pill shut">Orders closed</span>`;
+}
+
+/** "Friday 5pm". hour12 is forced — a 24-hour browser locale would render "17:00". */
+function fmtCutoff(date) {
+  const day = date.toLocaleDateString(undefined, { weekday: 'long' });
+  const h = date.getHours(), m = date.getMinutes();
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  const time = (m ? `${hour12}:${String(m).padStart(2, '0')}` : `${hour12}`) + (h < 12 ? 'am' : 'pm');
+  return `${day} ${time}`;
 }
 
 function renderMenu() {
